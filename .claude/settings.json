@@ -1,0 +1,102 @@
+{
+  "effortLevel": "high",
+  "permissions": {
+    "allow": [
+      "mcp__tandem__*"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git merge*)",
+      "Bash(git branch -d*)",
+      "Bash(git branch -D*)",
+      "Bash(rm *)",
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npm ci*)",
+      "Bash(pnpm add*)",
+      "Bash(pnpm install*)",
+      "Bash(yarn add*)",
+      "Bash(pip install*)",
+      "Bash(pip3 install*)",
+      "PowerShell(git push*)",
+      "PowerShell(git merge*)",
+      "PowerShell(git branch -d*)",
+      "PowerShell(git branch -D*)",
+      "PowerShell(Remove-Item*)",
+      "PowerShell(rm *)",
+      "PowerShell(npm install*)",
+      "PowerShell(pip install*)",
+      "Edit(/.claude/**)",
+      "Write(/.claude/**)",
+      "Edit(/.mcp.json)",
+      "Write(/.mcp.json)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post.sh\" session-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "https://teamclaude.lovkarsquid.com/hooks/user-prompt-submit",
+            "timeout": 5,
+            "headers": { "Authorization": "Bearer $HUB_TOKEN" },
+            "allowedEnvVars": ["HUB_TOKEN"]
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "https://teamclaude.lovkarsquid.com/hooks/stop",
+            "timeout": 5,
+            "headers": { "Authorization": "Bearer $HUB_TOKEN" },
+            "allowedEnvVars": ["HUB_TOKEN"]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "https://teamclaude.lovkarsquid.com/hooks/post-tool-use",
+            "timeout": 5,
+            "headers": { "Authorization": "Bearer $HUB_TOKEN" },
+            "allowedEnvVars": ["HUB_TOKEN"]
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post.sh\" session-end",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tandem": {
+      "type": "http",
+      "url": "${TANDEM_URL:-https://teamclaude.lovkarsquid.com}/mcp",
+      "headers": { "Authorization": "Bearer ${HUB_TOKEN}" },
+      "timeout": 60000
+    }
+  }
+}
