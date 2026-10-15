@@ -14,6 +14,28 @@ pri tem je veliko dela in veliko napak.
 - Profesor dobi pregleden seznam prijav brez prepisovanja (in izvoz, npr. CSV).
 - Raziskovalna naloga, ki jo lahko predstaviva na maturi.
 
+## Zagon
+
+Potrebuješ [Node.js](https://nodejs.org/) 22 LTS ali novejši (z njim pride npm).
+
+```bash
+npm install   # enkrat, namesti pakete iz package-lock.json
+npm start     # zažene strežnik na http://localhost:3000
+npm test      # požene vse teste
+```
+
+Ali strežnik teče, preveriš na `http://localhost:3000/health`, ki vrne `{"ok":true}`.
+
+Nastavitve so v okoljskih spremenljivkah. Za lokalni zagon kopiraj `.env.example` v `.env` in ga prilagodi
+(`.env` ne gre v git). Spremenljivka, ki je že nastavljena v okolju, ima prednost pred `.env`.
+
+| Spremenljivka | Privzeto | Pomen |
+|---|---|---|
+| `PORT` | `3000` | vrata, na katerih posluša strežnik |
+
+Sklad: Node.js, [Express](https://expressjs.com/), testi z vgrajenim `node:test` in
+[supertest](https://github.com/ladjs/supertest).
+
 ## Kako delava
 
 Delava skupaj, z dvema Claude Code agentoma, ki se usklajujeta prek **Tandema**
