@@ -2,7 +2,8 @@
   "effortLevel": "high",
   "permissions": {
     "allow": [
-      "mcp__tandem__*"
+      "mcp__tandem__*",
+      "Bash(bash .claude/hooks/wake.sh)"
     ],
     "ask": [
       "Bash(git push*)",
