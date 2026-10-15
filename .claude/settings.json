@@ -33,6 +33,11 @@
       "Write(/.mcp.json)"
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/statusline.sh\"",
+    "refreshInterval": 60
+  },
   "hooks": {
     "SessionStart": [
       {
