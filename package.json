@@ -1,0 +1,25 @@
+{
+  "name": "popravni-izpiti",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spletna aplikacija, v kateri se dijaki prijavijo na popravne izpite in na popravni izpit mature. Nastaja kot raziskovalna naloga (Lovkar in Anže).",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LovkarDijak/popravni-izpiti.git"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
