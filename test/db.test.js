@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openDb, DataError } from '../src/db/index.js';
+import { openDb, DataError, checkRegistration } from '../src/db/index.js';
 import { seed, SEED } from '../src/db/seed.js';
 
 const FIXED_NOW = new Date('2027-07-01T08:30:00Z');
@@ -94,6 +94,7 @@ test('prijava se ustvari in prebere z rokom in predmetom', () => {
     email: 'ana.testna@example.com',
     createdAt: '2027-07-01T08:30:00.000Z',
     examDate: '2027-08-20',
+    examDescription: 'Pisni del',
     subjectId: subject.id,
     subjectName: 'Matematika',
     subjectKind: 'popravni',
@@ -252,4 +253,17 @@ test('seme, ki se ustavi na pol, ne pusti ničesar v bazi', () => {
   }
   assert.equal(store.listSubjects().length, 0);
   assert.equal(seed(store), true);
+});
+
+test('checkRegistration vrne vse napake hkrati, vsako z imenom polja in razlogom', () => {
+  const { values, errors } = checkRegistration({
+    firstName: ' Ana ', lastName: '', className: 'x'.repeat(21), email: 'ana@',
+  });
+  assert.equal(values.firstName, 'Ana');
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(errors).map(([f, e]) => [f, [e.field, e.reason]])),
+    { lastName: ['lastName', 'missing'], className: ['className', 'tooLong'], email: ['email', 'format'] },
+  );
+  assert.equal(checkRegistration({ ...student, firstName: 'A\u0000' }).errors.firstName.reason, 'badChars');
+  assert.deepEqual(checkRegistration(student).errors, {});
 });

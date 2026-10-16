@@ -8,11 +8,15 @@ const SQLITE_CONSTRAINT_FOREIGNKEY = 787;
 const SQLITE_CONSTRAINT_UNIQUE = 2067;
 
 // code: 'INVALID' (bad input), 'DUPLICATE' (already exists) or 'NOT_FOUND' (unknown id).
+// For bad input, field names the input and reason says what is wrong with it:
+// 'missing', 'tooLong', 'badChars' or 'format', so a form can word its own message.
 export class DataError extends Error {
-  constructor(code, message) {
+  constructor(code, message, { field = null, reason = null } = {}) {
     super(message);
     this.name = 'DataError';
     this.code = code;
+    this.field = field;
+    this.reason = reason;
   }
 }
 
@@ -29,14 +33,43 @@ const collator = new Intl.Collator('sl');
 
 // Trimmed, NFC-normalized text without control characters and at most max characters long.
 // Messages never repeat the input, so they are safe to show as they are.
-function text(value, label, max, { required = true } = {}) {
+function text(value, label, max, { required = true, field = null } = {}) {
+  const fail = (reason, message) => new DataError('INVALID', message, { field, reason });
   if (value === undefined || value === null) value = '';
-  if (typeof value !== 'string') throw new DataError('INVALID', `Neveljaven podatek: ${label}.`);
+  if (typeof value !== 'string') throw fail('format', `Neveljaven podatek: ${label}.`);
   const result = value.normalize('NFC').trim();
-  if (required && !result) throw new DataError('INVALID', `Manjka ${label}.`);
-  if (result.length > max) throw new DataError('INVALID', `Predolg podatek: ${label} (največ ${max} znakov).`);
-  if (FORBIDDEN_CHARS.test(result)) throw new DataError('INVALID', `Neveljavni znaki: ${label}.`);
+  if (required && !result) throw fail('missing', `Manjka ${label}.`);
+  if (result.length > max) throw fail('tooLong', `Predolg podatek: ${label} (največ ${max} znakov).`);
+  if (FORBIDDEN_CHARS.test(result)) throw fail('badChars', `Neveljavni znaki: ${label}.`);
   return result;
+}
+
+const REGISTRATION_FIELDS = [
+  ['firstName', 'ime'],
+  ['lastName', 'priimek'],
+  ['className', 'razred'],
+  ['email', 'e-pošta'],
+];
+
+// Checks every field of a registration without touching the database.
+// Returns the cleaned values and one DataError per bad field, so a form can show all problems at once.
+export function checkRegistration(input = {}) {
+  const values = {};
+  const errors = {};
+  for (const [field, label] of REGISTRATION_FIELDS) {
+    try {
+      values[field] = text(input[field], label, MAX_LENGTH[field], { field });
+    } catch (err) {
+      errors[field] = err;
+    }
+  }
+  if (!errors.email) {
+    values.email = values.email.toLowerCase();
+    if (!EMAIL_RE.test(values.email)) {
+      errors.email = new DataError('INVALID', 'Neveljaven e-poštni naslov.', { field: 'email', reason: 'format' });
+    }
+  }
+  return { values, errors };
 }
 
 function isoDate(value) {
@@ -75,7 +108,8 @@ function write(stmt, params, messages) {
 const REGISTRATION_SELECT = `
   SELECT r.id, r.exam_date_id AS examDateId, r.first_name AS firstName, r.last_name AS lastName,
          r.class_name AS className, r.email, r.created_at AS createdAt,
-         e.date AS examDate, e.subject_id AS subjectId, s.name AS subjectName, s.kind AS subjectKind
+         e.date AS examDate, e.description AS examDescription, e.subject_id AS subjectId,
+         s.name AS subjectName, s.kind AS subjectKind
   FROM registrations r
   JOIN exam_dates e ON e.id = r.exam_date_id
   JOIN subjects s ON s.id = e.subject_id`;
@@ -166,20 +200,13 @@ export function openDb(filename = ':memory:', { now = () => new Date() } = {}) {
         .sort((a, b) => a.date.localeCompare(b.date) || collator.compare(a.subjectName, b.subjectName));
     },
 
-    createRegistration({ examDateId, firstName, lastName, className, email }) {
-      const params = {
-        examDateId: id(examDateId, 'rok'),
-        firstName: text(firstName, 'ime', MAX_LENGTH.firstName),
-        lastName: text(lastName, 'priimek', MAX_LENGTH.lastName),
-        className: text(className, 'razred', MAX_LENGTH.className),
-        email: text(email, 'e-pošta', MAX_LENGTH.email).toLowerCase(),
-        createdAt: now().toISOString(),
-      };
-      if (!EMAIL_RE.test(params.email)) {
-        throw new DataError('INVALID', 'Neveljaven e-poštni naslov.');
-      }
+    createRegistration({ examDateId, ...fields }) {
+      const { values, errors } = checkRegistration(fields);
+      const firstError = Object.values(errors)[0];
+      if (firstError) throw firstError;
+      const params = { ...values, examDateId: id(examDateId, 'rok'), createdAt: now().toISOString() };
       const { lastInsertRowid } = write(q.insertRegistration, params, {
-        duplicate: 'Na ta rok si že prijavljen.',
+        duplicate: 'Prijava na ta rok že obstaja.',
         notFound: 'Izpitni rok ne obstaja.',
       });
       return plain(q.getRegistration.get(lastInsertRowid));
