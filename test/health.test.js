@@ -10,7 +10,7 @@ const serverPath = fileURLToPath(new URL('../src/server.js', import.meta.url));
 
 function startServer(env) {
   return spawn(process.execPath, [serverPath], {
-    env: { ...process.env, ...env },
+    env: { ...process.env, DB_PATH: ':memory:', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }

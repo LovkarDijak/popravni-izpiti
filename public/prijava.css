@@ -1,0 +1,79 @@
+/* Plain, readable form; works on phones. */
+:root {
+  --ozadje: #ffffff;
+  --besedilo: #1a1a1a;
+  --poudarek: #0b5394;
+  --napaka: #a40000;
+  --napaka-ozadje: #fdecec;
+  --rob: #767676;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ozadje);
+  color: var(--besedilo);
+  font: 1.0625rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+h1 { font-size: 1.6rem; line-height: 1.25; }
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input, select, button {
+  font: inherit;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--rob);
+  border-radius: 0.375rem;
+  background: var(--ozadje);
+  color: var(--besedilo);
+}
+
+button {
+  background: var(--poudarek);
+  border-color: var(--poudarek);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--poudarek);
+  outline-offset: 2px;
+}
+
+.napaka {
+  border-left: 4px solid var(--napaka);
+  background: var(--napaka-ozadje);
+  color: var(--napaka);
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.napaka h2 { font-size: 1.1rem; margin: 0.5rem 0; }
+.napaka a { color: var(--napaka); }
+
+.napaka-polje {
+  color: var(--napaka);
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+[aria-invalid="true"] { border: 2px solid var(--napaka); }
+
+dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.25rem 1rem; }
+dt { font-weight: 600; }
+dd { margin: 0; overflow-wrap: anywhere; }
