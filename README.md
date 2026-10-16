@@ -28,6 +28,10 @@ npm run seed  # napolni bazo z izmišljenimi podatki za razvoj
 Ali strežnik teče, preveriš na `http://localhost:3000/health`, ki vrne `{"ok":true}`.
 Obrazec za prijavo na izpit je na `http://localhost:3000/prijava` (tja preusmeri tudi `/`).
 Za poskus najprej zaženi `npm run seed`, da dobiš izmišljene predmete in roke.
+Profesorji vidijo prijave na `http://localhost:3000/profesor` (geslo iz `TEACHER_PASSWORD`, uporabniško ime je poljubno)
+in jih tam prenesejo v CSV, ki ga Excel odpre z dvojnim klikom (UTF-8, ločilo podpičje).
+Geslo gre ob vsaki zahtevi po omrežju, zato aplikacijo zunaj lastnega računalnika poganjaj samo za HTTPS
+in za `TEACHER_PASSWORD` izberi dolgo naključno geslo (vsaj 16 znakov).
 
 Nastavitve so v okoljskih spremenljivkah. Za lokalni zagon kopiraj `.env.example` v `.env` in ga prilagodi
 (`.env` ne gre v git). Spremenljivka, ki je že nastavljena v okolju, ima prednost pred `.env`.
@@ -35,6 +39,7 @@ Nastavitve so v okoljskih spremenljivkah. Za lokalni zagon kopiraj `.env.example
 | Spremenljivka | Privzeto | Pomen |
 |---|---|---|
 | `PORT` | `3000` | vrata, na katerih posluša strežnik |
+| `TEACHER_PASSWORD` | (prazno) | geslo za `/profesor`; brez njega je pregled prijav zaprt |
 | `DB_PATH` | `data/popravni-izpiti.sqlite` | datoteka baze SQLite, glede na mapo, iz katere zaženeš ukaz (`data/` in `*.sqlite` ne gredo v git) |
 
 Sklad: Node.js, [Express](https://expressjs.com/), baza SQLite prek vgrajenega modula `node:sqlite`,
