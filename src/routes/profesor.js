@@ -18,6 +18,10 @@ export function countRegistrations(n) {
 const timeFmt = new Intl.DateTimeFormat('sl', {
   timeZone: 'Europe/Ljubljana', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
 });
+// In the CSV: 2026-10-16 12:03, which spreadsheets read as a date and time (a comma would make it text).
+const csvTimeFmt = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Ljubljana', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+});
 
 // Compares hashes so neither the length nor the content of the password leaks through timing.
 function samePassword(given, expected) {
@@ -31,7 +35,7 @@ function samePassword(given, expected) {
 function requirePassword(password) {
   return (req, res, next) => {
     if (!password.trim()) {
-      return res.status(503).type('text').send('Pregled prijav trenutno ni na voljo.');
+      return res.status(503).type('text').send('Pregled prijav za profesorje še ni vklopljen. Obvestite skrbnika strani.');
     }
     // The scheme name is case-insensitive (RFC 7235).
     const match = /^Basic\s+(\S+)$/i.exec(req.get('authorization') ?? '');
@@ -41,7 +45,8 @@ function requirePassword(password) {
       if (decoded.includes(':') && samePassword(given, password)) return next();
     }
     res.set('WWW-Authenticate', 'Basic realm="Popravni izpiti - profesorji", charset="UTF-8"');
-    return res.status(401).type('text').send('Za ta pregled potrebuješ geslo za profesorje.');
+    return res.status(401).type('text')
+      .send('Za ta pregled potrebujete geslo za profesorje. Če ga nimate, se obrnite na skrbnika strani.');
   };
 }
 
@@ -74,16 +79,16 @@ const CSV_COLUMNS = [
   { header: 'Predmet', value: (r) => r.subjectName },
   { header: 'Vrsta', value: (r) => KIND_SHORT[r.subjectKind] },
   { header: 'Rok', value: (r) => r.examDate },
-  { header: 'Čas prijave', value: (r) => timeFmt.format(new Date(r.createdAt)) },
+  { header: 'Opis roka', value: (r) => r.examDescription },
+  { header: 'Čas prijave', value: (r) => csvTimeFmt.format(new Date(r.createdAt)) },
 ];
 
 function listPage({ subjects, examDates, registrations, filters }) {
   const option = (value, label, selected) => html`
       <option value="${value}"${selected ? html` selected` : ''}>${label}</option>`;
-  // Dates of the chosen subject, plus the chosen date even if it belongs elsewhere, so the form shows what was asked.
-  const shownDates = filters.subjectId
-    ? examDates.filter((e) => e.subjectId === filters.subjectId || e.id === filters.examDateId)
-    : examDates;
+  const shownDates = filters.subjectId ? examDates.filter((e) => e.subjectId === filters.subjectId) : examDates;
+  const dateLabel = (e) => `${slovenianDate(e.date)} – ${e.subjectName} (${KIND_SHORT[e.subjectKind]})`
+    + (e.description ? `, ${e.description}` : '');
 
   return page({
     title: 'Prijave na izpite',
@@ -103,7 +108,7 @@ function listPage({ subjects, examDates, registrations, filters }) {
     <label for="examDateId">Rok</label>
     <select id="examDateId" name="examDateId">
       <option value="">Vsi roki</option>${shownDates.map((e) => option(
-    e.id, `${slovenianDate(e.date)}: ${e.subjectName} (${KIND_SHORT[e.subjectKind]})`, e.id === filters.examDateId,
+    e.id, dateLabel(e), e.id === filters.examDateId,
   ))}
     </select>
   </p>
@@ -111,13 +116,14 @@ function listPage({ subjects, examDates, registrations, filters }) {
 </form>
 <p class="povzetek">
   <span>${countRegistrations(registrations.length)}</span>
-  <a class="gumb" href="/profesor/prijave.csv${filterQuery(filters)}">Prenesi CSV za Excel</a>
+  ${registrations.length > 0
+    ? html`<a class="gumb" href="/profesor/prijave.csv${filterQuery(filters)}">Prenesi seznam za Excel (CSV)</a>` : ''}
 </p>
 ${registrations.length === 0
-    ? html`<p>Za izbrani filter ni prijav.</p>`
-    : html`<div class="tabela">
+    ? html`<p>Za izbrani predmet in rok še ni prijav.</p>`
+    : html`<div class="tabela" tabindex="0" role="region" aria-labelledby="tabela-naslov">
 <table>
-  <caption class="skrito">Prijave, urejene po priimku</caption>
+  <caption id="tabela-naslov" class="skrito">Prijave, urejene po priimku</caption>
   <thead><tr>
     <th scope="col">Priimek</th><th scope="col">Ime</th><th scope="col">Razred</th><th scope="col">E-pošta</th>
     <th scope="col">Predmet</th><th scope="col">Rok</th><th scope="col">Čas prijave</th>
@@ -125,7 +131,8 @@ ${registrations.length === 0
   <tbody>${registrations.map((r) => html`
     <tr>
       <td>${r.lastName}</td><td>${r.firstName}</td><td>${r.className}</td><td>${r.email}</td>
-      <td>${r.subjectName} (${KIND_SHORT[r.subjectKind]})</td><td>${slovenianDate(r.examDate)}</td>
+      <td>${r.subjectName} (${KIND_SHORT[r.subjectKind]})</td>
+      <td>${slovenianDate(r.examDate)}${r.examDescription ? html`<br><small>${r.examDescription}</small>` : ''}</td>
       <td>${timeFmt.format(new Date(r.createdAt))}</td>
     </tr>`)}
   </tbody>
@@ -147,8 +154,13 @@ export function profesorRouter(store, { password, now = () => new Date() } = {})
   const load = (req, res) => {
     const filters = readFilters(req.query);
     if (!filters) {
-      res.status(400).type('text').send('Neveljaven filter.');
+      res.status(400).type('text').send('Izbira filtra ni veljavna. Vrnite se na /profesor in izberite znova.');
       return null;
+    }
+    // A date of another subject (left over after changing the subject) would hide everything: drop it.
+    if (filters.subjectId && filters.examDateId) {
+      const date = store.listExamDates().find((e) => e.id === filters.examDateId);
+      if (date && date.subjectId !== filters.subjectId) delete filters.examDateId;
     }
     return { filters, registrations: store.listRegistrations(filters) };
   };
@@ -166,7 +178,9 @@ export function profesorRouter(store, { password, now = () => new Date() } = {})
   router.get('/prijave.csv', (req, res) => {
     const data = load(req, res);
     if (!data) return;
-    res.set('Content-Disposition', `attachment; filename="prijave-${todayInLjubljana(now())}.csv"`);
+    const { subjectId, examDateId } = data.filters;
+    const which = examDateId ? `-rok-${examDateId}` : subjectId ? `-predmet-${subjectId}` : '';
+    res.set('Content-Disposition', `attachment; filename="prijave-${todayInLjubljana(now())}${which}.csv"`);
     res.type('text/csv; charset=utf-8').send(toCsv(data.registrations, CSV_COLUMNS));
   });
 

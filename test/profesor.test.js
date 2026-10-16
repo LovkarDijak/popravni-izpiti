@@ -83,8 +83,11 @@ test('filtra po predmetu in roku omejita seznam', async () => {
   assert.match(byDate.text, /1 prijava/);
   assert.match(byDate.text, /<td>Cerar<\/td>/);
   assert.match(byDate.text, new RegExp(`href="/profesor/prijave.csv\\?examDateId=${englishDate.id}"`));
-  const none = await auth(request(app).get(`/profesor?subjectId=${math.id}&examDateId=${englishDate.id}`));
-  assert.match(none.text, /Za izbrani filter ni prijav\./);
+  assert.match(byDate.text, /Prenesi seznam za Excel \(CSV\)/);
+  // A date of another subject is dropped instead of silently hiding every registration.
+  const mismatch = await auth(request(app).get(`/profesor?subjectId=${math.id}&examDateId=${englishDate.id}`));
+  assert.match(mismatch.text, /2 prijavi/);
+  assert.match(mismatch.text, /href="\/profesor\/prijave.csv\?subjectId=\d+"/);
 });
 
 test('neveljaven filter vrne 400', async () => {
@@ -104,10 +107,10 @@ test('CSV ima BOM, glavo, podpičja, šumnike in isti filter kot seznam', async 
   assert.equal(res.headers['cache-control'], 'no-store');
   assert.equal(res.headers['x-robots-tag'], 'noindex');
   assert.match(res.headers['content-type'], /^text\/csv; charset=utf-8/);
-  assert.match(res.headers['content-disposition'], /attachment; filename="prijave-2027-07-01\.csv"/);
+  assert.match(res.headers['content-disposition'], /attachment; filename="prijave-2027-07-01-predmet-\d+\.csv"/);
   const lines = res.body.split('\r\n');
-  assert.equal(lines[0], '\uFEFFPriimek;Ime;Razred;E-pošta;Predmet;Vrsta;Rok;Čas prijave');
-  assert.equal(lines[1], 'Čeh;Bor;2. a;bor.xeh@example.com;Matematika;popravni izpit;2027-08-20;1. 7. 2027, 10:00');
+  assert.equal(lines[0], '\uFEFFPriimek;Ime;Razred;E-pošta;Predmet;Vrsta;Rok;Opis roka;Čas prijave');
+  assert.equal(lines[1], 'Čeh;Bor;2. a;bor.xeh@example.com;Matematika;popravni izpit;2027-08-20;;2027-07-01 10:00');
   assert.match(lines[2], /^Zupan;Ana;/);
   assert.equal(lines[3], '');
   assert.equal(lines.length, 4);
@@ -136,4 +139,16 @@ test('število prijav je v pravilni slovenski obliki', () => {
     '0 prijav', '1 prijava', '2 prijavi', '3 prijave', '4 prijave', '5 prijav',
     '11 prijav', '101 prijava', '102 prijavi', '103 prijave', '111 prijav',
   ]);
+});
+
+test('brez prijav ni povezave za prenos, opis roka je viden', async () => {
+  const store = openDb(':memory:', { now: () => NOW });
+  const subject = store.createSubject({ name: 'Fizika', kind: 'popravni' });
+  store.createExamDate({ subjectId: subject.id, date: '2027-08-23', description: 'Ustni del' });
+  const app = createApp({ store, now: () => NOW, teacherPassword: PASSWORD });
+  const empty = await auth(request(app).get('/profesor'));
+  assert.match(empty.text, /0 prijav/);
+  assert.match(empty.text, /Za izbrani predmet in rok še ni prijav\./);
+  assert.doesNotMatch(empty.text, /prijave\.csv/);
+  assert.match(empty.text, /ponedeljek, 23\. 8\. 2027 – Fizika \(popravni izpit\), Ustni del/);
 });
