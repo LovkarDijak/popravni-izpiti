@@ -16,12 +16,13 @@ pri tem je veliko dela in veliko napak.
 
 ## Zagon
 
-Potrebuješ [Node.js](https://nodejs.org/) 22 LTS ali novejši (z njim pride npm).
+Potrebuješ [Node.js](https://nodejs.org/) 22.13 ali novejši (z njim pride npm in vgrajeni SQLite).
 
 ```bash
 npm install   # enkrat, namesti pakete iz package-lock.json
 npm start     # zažene strežnik na http://localhost:3000
 npm test      # požene vse teste
+npm run seed  # napolni bazo z izmišljenimi podatki za razvoj
 ```
 
 Ali strežnik teče, preveriš na `http://localhost:3000/health`, ki vrne `{"ok":true}`.
@@ -32,9 +33,15 @@ Nastavitve so v okoljskih spremenljivkah. Za lokalni zagon kopiraj `.env.example
 | Spremenljivka | Privzeto | Pomen |
 |---|---|---|
 | `PORT` | `3000` | vrata, na katerih posluša strežnik |
+| `DB_PATH` | `data/popravni-izpiti.sqlite` | datoteka baze SQLite, glede na mapo, iz katere zaženeš ukaz (`data/` in `*.sqlite` ne gredo v git) |
 
-Sklad: Node.js, [Express](https://expressjs.com/), testi z vgrajenim `node:test` in
-[supertest](https://github.com/ladjs/supertest).
+Sklad: Node.js, [Express](https://expressjs.com/), baza SQLite prek vgrajenega modula `node:sqlite`,
+testi z vgrajenim `node:test` in [supertest](https://github.com/ladjs/supertest).
+Node ob uporabi baze izpiše opozorilo `ExperimentalWarning: SQLite is an experimental feature`; to je pričakovano.
+
+Podatkovni model (`src/db/`): predmet (ime, vrsta `popravni` ali `matura`), izpitni rok (predmet, datum `LLLL-MM-DD`, opis)
+in prijava (rok, ime, priimek, razred, e-pošta, čas prijave). Dijak se na en rok prijavi le enkrat (prepozna se po e-pošti,
+ne glede na velike in male črke). Testni in razvojni podatki so vedno izmišljeni (naslovi na `example.com`).
 
 ## Kako delava
 

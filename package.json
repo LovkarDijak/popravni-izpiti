@@ -6,11 +6,12 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "seed": "node src/db/seed.js"
   },
   "repository": {
     "type": "git",
