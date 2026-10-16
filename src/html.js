@@ -37,7 +37,8 @@ export function html(strings, ...values) {
   return raw(out);
 }
 
-export function page({ title, body }) {
+// styles: extra stylesheets after the shared one, e.g. ['/profesor.css'].
+export function page({ title, body, styles = [] }) {
   return html`<!doctype html>
 <html lang="sl">
 <head>
@@ -45,7 +46,8 @@ export function page({ title, body }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title} · Popravni izpiti</title>
 <link rel="stylesheet" href="/prijava.css">
-</head>
+${styles.map((href) => html`<link rel="stylesheet" href="${href}">
+`)}</head>
 <body>
 <main>
 ${body}

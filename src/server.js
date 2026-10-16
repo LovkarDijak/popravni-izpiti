@@ -27,7 +27,12 @@ try {
   process.exit(1);
 }
 
-const server = createApp({ store }).listen(port, () => {
+const teacherPassword = process.env.TEACHER_PASSWORD ?? '';
+if (!teacherPassword.trim()) {
+  console.warn('TEACHER_PASSWORD ni nastavljen, zato je pregled prijav za profesorje zaprt.');
+}
+
+const server = createApp({ store, teacherPassword }).listen(port, () => {
   console.log(`Strežnik teče na http://localhost:${server.address().port}`);
 });
 

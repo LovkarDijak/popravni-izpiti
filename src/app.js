@@ -3,12 +3,14 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './db/index.js';
 import { html, page } from './html.js';
 import { prijavaRouter } from './routes/prijava.js';
+import { profesorRouter } from './routes/profesor.js';
 
 const publicDir = fileURLToPath(new URL('../public', import.meta.url));
 
 // Builds the Express app without listening, so tests can drive it directly.
-// store: the database from openDb (a throwaway in-memory one when left out); now: the clock.
-export function createApp({ store = openDb(':memory:'), now = () => new Date() } = {}) {
+// store: the database from openDb (a throwaway in-memory one when left out); now: the clock;
+// teacherPassword: the password for the teacher pages (closed when empty).
+export function createApp({ store = openDb(':memory:'), now = () => new Date(), teacherPassword = '' } = {}) {
   const app = express();
   app.disable('x-powered-by');
 
@@ -28,6 +30,7 @@ export function createApp({ store = openDb(':memory:'), now = () => new Date() }
 
   app.get('/', (req, res) => res.redirect('/prijava'));
   app.use('/prijava', prijavaRouter(store, { now }));
+  app.use('/profesor', profesorRouter(store, { password: teacherPassword, now }));
   app.use(express.static(publicDir));
 
   // Anything unexpected: log it on the server, show the visitor nothing internal.
