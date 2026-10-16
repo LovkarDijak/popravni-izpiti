@@ -26,6 +26,8 @@ npm run seed  # napolni bazo z izmišljenimi podatki za razvoj
 ```
 
 Ali strežnik teče, preveriš na `http://localhost:3000/health`, ki vrne `{"ok":true}`.
+Obrazec za prijavo na izpit je na `http://localhost:3000/prijava` (tja preusmeri tudi `/`).
+Za poskus najprej zaženi `npm run seed`, da dobiš izmišljene predmete in roke.
 
 Nastavitve so v okoljskih spremenljivkah. Za lokalni zagon kopiraj `.env.example` v `.env` in ga prilagodi
 (`.env` ne gre v git). Spremenljivka, ki je že nastavljena v okolju, ima prednost pred `.env`.
